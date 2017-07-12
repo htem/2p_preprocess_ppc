@@ -1,4 +1,6 @@
 function lineUpAll_aaron(sessionList_all)
+%lines up imaging frames with virmen. requires pclamp and virmen files to run. output is binned virmen data with length the same as the number of frames.
+
 data_path = 'Z:\HarveyLab\Aaron\data';
 mouse = sessionList_all{1,1}(1:5);
 for session = 2%:size(sessionList_all,1)
