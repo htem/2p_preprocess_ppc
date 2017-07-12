@@ -36,7 +36,7 @@ for session = 4%:size(sessionList_all,1)
     % warning first
     numVirmenIts = sum(dataSize);
     combinedVirmenFiles = zeros(maxRowsData,numVirmenIts);
-    mazeName = cell(1,numVirmenIts);
+vurnvir    mazeName = cell(1,numVirmenIts);
     dataItInd = 1;
     for fileNumber = virmenFilesUSE
         load(fullfile(data_path, 'virmen', mouse, ...
