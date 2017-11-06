@@ -1,18 +1,25 @@
-%cd('Z:\Lee_Lab\Aaron\data\scanimage\AK001')
+%% 171106 AK working through 2P analysis code
+% From Harvey Lab & Laura Driscoll
+
+% Data hosted on Neurobiology server
+% Backed up on Orch?
 mousePath = 'Z:\Lee_Lab\Aaron\data\scanimage\AK001';
 sessionList = dir([mousePath '\AK*']);
 session = 13;% can loop over session here
 
 %% Produce motion corrected movies
+% Needs acq2P package https://github.com/HarveyLab/Acquisition2P_class
+% and Harvey lab helper functions https://github.com/HarveyLab/helperFunctions
 sessionPath=fullfile(mousePath,sessionList(session).name);
 output_dir = fullfile(mousePath, '\sessions\',sessionList(session).name);
 if ~exist(output_dir,'dir')
     mkdir(output_dir)
 end
 cd(sessionPath);
-acq = Acquisition2P([],@SC2Pinit); % Uses Acquision2P class
+% Will ask you to select which video files to process
+% Uses Acquision2P class
+acq = Acquisition2P([],@SC2Pinit); 
 
-% https://github.com/HarveyLab/Acquisition2P_class
 acq.motionRefChannel = 2; % red channel 
 acq.motionCorrect; % Produce motion corrected 
 
@@ -23,6 +30,8 @@ channelNum = 1; % green?
 
 sizeBit = acq.correctedMovies.slice(1).channel(1).size;
 sizeArray = repmat(sizeBit,[size(acq.Movies,2) 1]);
+
+% Here we assume there are 4 planes in the image
 for sliceNum = 1:4
 acq.correctedMovies.slice(sliceNum).channel(1).size = sizeArray;
 acq.indexMovie(sliceNum,channelNum,output_dir);
@@ -76,3 +85,47 @@ sessionList_all = cell(size(sessionList,1),1);
 for s = 1:size(sessionList,1)
     sessionList_all{s,1} = sessionList(s,1).name;
 end
+
+%% ROI selection
+
+% Now we can use these files to select ROIs. We can call the selectROIs
+% method without input arguments, but again for clarity I will define some
+% inputs here
+
+% Use the built-in function meanRef to get a mean reference image, then
+% process its square root with adaptive histogram equalization. Since this
+% empirically produces nice looking images, this is actually the default
+% behavior if no reference image is passed to the function call, so the
+% code below is redundant but provided for demonstration
+
+img = acq.meanRef;
+img(img<0) = 0;
+img(isnan(img)) = 0;
+img = sqrt(img);
+img = adapthisteq(img/max(img(:)));
+
+% An alternative is to use an 'activity overview image', which has been
+% precalculated in the calcPxCov call. This image highlights pixels which
+% share strong correlations with neighboring pixels, and can be used
+% independently or shared with an anatomical image, e.g.
+
+actImg = acq.roiInfo.slice(sliceNum).covFile.activityImg;
+% img = img/2 + actImg/2;
+
+% Note that the reference image is only used for display purposes, and has no impact
+% on the segmentation algorithm itself.
+
+% Now start the ROI selection GUI. This tool is complex enough to have its
+% own tutorial, located in the same folder as this file. Again, all
+% arguments are optional, provided here just for clarity.
+smoothWindow = 15; % Gaussian window with std = smoothWin/5, for displaying traces
+excludeFrames = []; %List of frames that need to be excluded, e.g. if they contain artifacts
+
+sliceNum = 1;
+channeNum = 1; % green
+
+acq.selectROIs(img,sliceNum,channelNum,smoothWindow,excludeFrames);
+
+% Take the time to read through 'Using the ROI selection tool', and then
+% select your cells. Once you've selected ROIs, be sure to save the acquisition again
+acq.save;
