@@ -1,7 +1,8 @@
-function lineUpAll(sessionList_all)
+function syncVirmenData = lineUpAll(sessionList_all,sessions)
 data_path = 'Z:\Lee_Lab\Aaron\data';
 mouse = sessionList_all{1,1}(1:5); % ie 'AK001'
-for session = 4%:size(sessionList_all,1)
+for i = 1:length(sessions)%:size(sessionList_all,1)
+    session = sessions(i);
     VirmenData1 = [];
     VirmenData2 = [];
     VirmenData3 = [];
@@ -11,7 +12,8 @@ for session = 4%:size(sessionList_all,1)
     VirmenDataMazeID = [];
     maxRowsData = 11;
     file = sessionList_all{session,1}(1:12);
-    acqSize = 2000;
+    %acqSize = 2000;
+    acqSizes = [4000 8000 4000 8000];
 
     pclamp_directory = fullfile(data_path, 'pclamp', mouse, file);
     virmenList = dir(fullfile(data_path, 'virmen', mouse, [file '*.mat']));
@@ -61,7 +63,8 @@ for session = 4%:size(sessionList_all,1)
     clear last_It
     virmenFileShiftedItInd = 1;
     It_ind =1;
-    figure;
+    figure; 
+    title('pclamp coordination raw data');
     for trial = 1:size(d,1) % for each pclamp file
         
         %load pclamp files
@@ -73,8 +76,12 @@ for session = 4%:size(sessionList_all,1)
         hold on
         plot(raw_traces(:,2))   %frame clock
         plot(raw_traces(:,1))   %-1 on virmen its, -5 otherwise
+        legend('scanimage frame clock','virmen iteration counter','Location','SouthOutside');
         
-        real_length = min(5900000,size(raw_traces,1));
+        %real_length = min(5900000,size(raw_traces,1)) 
+        % AK 171106 4k is 5959780, 8k is 12567552
+        % not sure why min(5900000 is used here.
+        real_length = size(raw_traces,1);
         [lastInd] = find(raw_traces(1:real_length,2)>5,1,'last');
         raw_traces = raw_traces(1:lastInd+200,:);
         
@@ -137,7 +144,10 @@ for session = 4%:size(sessionList_all,1)
         
     end
     figure;plot(itCount)
-    totalFrames = (acqSize)*size(d,1);
+    xlabel('virmen iteration');
+    ylabel('pclamp sampling index');
+    %totalFrames = (acqSize)*size(d,1);
+    totalFrames = sum(acqSizes);
     frame_times = zeros(totalFrames,2,size(d,1));
     
     for aquisitionNumber = 1:size(d,1)
@@ -146,7 +156,10 @@ for session = 4%:size(sessionList_all,1)
         [raw_traces,samplinginterval,headerinfo] = abfload(pclamp_file_string);
         
         %crop file to end of imaging
-        real_length = min(5900000,size(raw_traces,1));
+        %real_length = min(5900000,size(raw_traces,1));
+        % AK 171106 4k is 5959780, 8k is 12567552
+        % not sure why min(5900000 is used here.
+        real_length = size(raw_traces,1);
         [lastInd] = find(raw_traces(1:real_length,2)>5,1,'last');
         raw_traces = raw_traces(1:lastInd+20,:);
 
@@ -156,9 +169,9 @@ for session = 4%:size(sessionList_all,1)
         [~,frameStop] = findpeaks(-y,'Threshold',0.9);
         frame_times(1:size(frameStart,1),1,aquisitionNumber) = frameStart;
         frame_times(1:size(frameStop,1),2,aquisitionNumber) = frameStop;
-        if aquisitionNumber==1
-            numFrames = size(frameStart,1);
-        end
+        %if aquisitionNumber==1
+        numFrames(aquisitionNumber) = size(frameStart,1);
+        %end
     end
     peaksItCount = [itCount(1:end-1) 0];
     [pclamp_end,it_end] = findpeaks(peaksItCount,'minpeakheight',1000000);
@@ -168,36 +181,44 @@ for session = 4%:size(sessionList_all,1)
     end
     
     virmenFrameNumber = zeros(1,size(combinedVirmenFiles,2));
+    lastVirmenFrame=1;
     for aquisitionNumber = 1:size(d,1)
         if aquisitionNumber>1
             it_framestart=it_end(aquisitionNumber-1)+1;
         else
             it_framestart=1;
         end
-        for frameNumber = 1:numFrames
+        for frameNumber = 1:numFrames(aquisitionNumber)
             iterationNumber = find(itCount(it_framestart:it_end(aquisitionNumber)) > frame_times(frameNumber,1,aquisitionNumber)...
                 & itCount(it_framestart:it_end(aquisitionNumber))  < frame_times(frameNumber,2,aquisitionNumber));
-            virmenFrameNumber(iterationNumber+it_framestart-1) = (aquisitionNumber-1)*numFrames+ frameNumber;
+            % AK171104 the problem is here
+            % virmenFrameNumber(iterationNumber+it_framestart-1) = (aquisitionNumber-1)*numFrames+ frameNumber;
+            virmenFrameNumber(iterationNumber+it_framestart-1) = lastVirmenFrame + frameNumber;
         end
+        lastVirmenFrame = lastVirmenFrame + frameNumber;
     end
     
-    figure;  plot (virmenFrameNumber,'linewidth',3)
-    xlabel('virmen iteration')
-    ylabel('frame number')
+    figure;  plot (virmenFrameNumber,'.');
+    xlabel('virmen iteration');
+    ylabel('scanimage frame number');
     
-    [ outputSlice1, outputSlice2, outputSlice3, outputSlice4, outputMazeName ] =...
+    % AK add full DATA and slice average (not much changes on scan
+    % timescale)
+    [syncVirmenData, outputDATA, outputSlice1, outputSlice2, outputSlice3, outputSlice4, outputMazeName ] =...
         saveVirmenData(combinedVirmenFiles, mazeName,virmenFrameNumber);
-    VirmenDataID(1,size(VirmenData1,2)+1:size(VirmenData1,2)+size(outputSlice1,2)) = {file};
-    VirmenData1 = cat(2,VirmenData1,outputSlice1(1:10,:));
-    VirmenData2 = cat(2,VirmenData2,outputSlice2(1:10,:));
-    VirmenData3 = cat(2,VirmenData3,outputSlice3(1:10,:));
-    VirmenData4 = cat(2,VirmenData4,outputSlice4(1:10,:));
-    VirmenDataMazeID = cat(2,VirmenDataMazeID,outputMazeName(1:size(outputSlice1,2)));
+    
+    
+%     VirmenDataID(1,size(VirmenData1,2)+1:size(VirmenData1,2)+size(outputSlice1,2)) = {file};
+%     VirmenData1 = cat(2,VirmenData1,outputSlice1(1:10,:));
+%     VirmenData2 = cat(2,VirmenData2,outputSlice2(1:10,:));
+%     VirmenData3 = cat(2,VirmenData3,outputSlice3(1:10,:));
+%     VirmenData4 = cat(2,VirmenData4,outputSlice4(1:10,:));
+%     VirmenDataMazeID = cat(2,VirmenDataMazeID,outputMazeName(1:size(outputSlice1,2)));
 
-    combineVirmen
+%    combineVirmen
     output_dir = fullfile(data_path, 'code_workspace',mouse,'virmen');   
     if ~exist(output_dir,'dir')
         mkdir(output_dir)
     end
-    save(fullfile(output_dir,file),'VirmenCombined');
+    save(fullfile(output_dir,file),'syncVirmenData');
 end
