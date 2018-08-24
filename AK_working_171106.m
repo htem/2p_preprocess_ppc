@@ -2,16 +2,17 @@
 % From Harvey Lab & Laura Driscoll
 
 % Data hosted on Neurobiology server
+% https://help.ubuntu.com/community/MountWindowsSharesPermanently
 % Backed up on Orch?
-mousePath = 'Z:\Lee_Lab\Aaron\data\scanimage\AK001';
-sessionList = dir([mousePath '\AK*']);
-session = 13;% can loop over session here
+mousePath = '/home/aaron/NeuroShare/Lee_Lab/Aaron/data/scanimage/AK013';
+sessionList = dir([mousePath '/AK*']);
+session = 18;% can loop over session here
 
 %% Produce motion corrected movies
 % Needs acq2P package https://github.com/HarveyLab/Acquisition2P_class
 % and Harvey lab helper functions https://github.com/HarveyLab/helperFunctions
 sessionPath=fullfile(mousePath,sessionList(session).name);
-output_dir = fullfile(mousePath, '\sessions\',sessionList(session).name);
+output_dir = fullfile(mousePath, '/sessions/',sessionList(session).name);
 if ~exist(output_dir,'dir')
     mkdir(output_dir)
 end
