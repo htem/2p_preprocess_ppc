@@ -1,7 +1,7 @@
 function ak_init(acq)
 
     movPath = pwd;
-    fileList = dir('AK*tif');
+    fileList = dir('*tif');
     movNames = cell(1,10*floor(size(fileList,1)/10));%cell(1,size(fileList,1));%
     for file = 1:10*floor(size(fileList,1)/10)%size(fileList,1)%
     movNames{file} = fileList(file).name;

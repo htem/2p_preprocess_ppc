@@ -1,21 +1,35 @@
-%cd('Z:\Lee_Lab\Aaron\data\scanimage\AK001')
-mousePath = 'Z:\Lee_Lab\Aaron\data\scanimage\AK001';
-sessionList = dir([mousePath '\AK*']);
-session = 13;% can loop over session here
+% ATK 180709
+% outer wrapper for 2P analysis 
+% Github Repo: https://github.com/lauradriscoll/pre_process_shared
+% AKdev branch
 
-%% Produce motion corrected movies
+% Requires 
+
+% (1) Harvey Lab Acq2P class
+% https://github.com/HarveyLab/Acquisition2P_class
+% (2) Harvey Lab Helper Functions
+% https://github.com/HarveyLab/helperFunctions
+
+mouseName = 'AK001';
+mousePath = ['Z:\Lee_Lab\Aaron\data\scanimage\' mouseName];
+sessionList = dir(fullfile(mousePath, [mouseName '*']));
+session = find(contains({sessionList.name},'AK001_170625'));% can loop over session here
+
+%% Initialize Acq2P object
 sessionPath=fullfile(mousePath,sessionList(session).name);
 output_dir = fullfile(mousePath, '\sessions\',sessionList(session).name);
 if ~exist(output_dir,'dir')
     mkdir(output_dir)
 end
 cd(sessionPath);
-acq = Acquisition2P([],@SC2Pinit); % Uses Acquision2P class
+acq = Acquisition2P([],@ak_init); 
 
-% https://github.com/HarveyLab/Acquisition2P_class
+
+%% Produce motion corrected movies
+tic
 acq.motionRefChannel = 2; % red channel 
 acq.motionCorrect; % Produce motion corrected 
-
+toc
 %load([sessionList(session).name '_001']);
 %eval(['acq = ' sessionList(session).name '_001;'])
 %acq.metaDataSI = metaDataSI;
