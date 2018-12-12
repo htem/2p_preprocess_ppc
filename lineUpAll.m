@@ -13,7 +13,7 @@ for i = 1:length(sessions)%:size(sessionList_all,1)
     maxRowsData = 11;
     file = sessionList_all{session,1}(1:12);
     %acqSize = 2000;
-    acqSizes = [4000 8000 4000 8000];
+    acqSizes = [4000 4000];
 
     pclamp_directory = fullfile(data_path, 'pclamp', mouse, file);
     virmenList = dir(fullfile(data_path, 'virmen', mouse, [file '*.mat']));
@@ -82,8 +82,10 @@ for i = 1:length(sessions)%:size(sessionList_all,1)
         % AK 171106 4k is 5959780, 8k is 12567552
         % not sure why min(5900000 is used here.
         real_length = size(raw_traces,1);
-        [lastInd] = find(raw_traces(1:real_length,2)>5,1,'last');
-        raw_traces = raw_traces(1:lastInd+200,:);
+        % ATK 181211 commented out the last following two lines
+        % Index out of bounds errors and not clear why necessary
+        % [lastInd] = find(raw_traces(1:real_length,2)>5,1,'last');
+        % raw_traces = raw_traces(1:lastInd+200,:);
         
         %crop file to end of imaging
         diff_raw_traces = diff(raw_traces(:,1));
@@ -160,8 +162,11 @@ for i = 1:length(sessions)%:size(sessionList_all,1)
         % AK 171106 4k is 5959780, 8k is 12567552
         % not sure why min(5900000 is used here.
         real_length = size(raw_traces,1);
-        [lastInd] = find(raw_traces(1:real_length,2)>5,1,'last');
-        raw_traces = raw_traces(1:lastInd+20,:);
+        
+        % ATK 181211 commented out the last following two lines
+        % Index out of bounds errors and not clear why necessary
+        % [lastInd] = find(raw_traces(1:real_length,2)>-5,1,'last');
+        % raw_traces = raw_traces(1:lastInd+20,:);
 
         end
         y = diff(round(raw_traces(:,2)/5));
@@ -204,7 +209,8 @@ for i = 1:length(sessions)%:size(sessionList_all,1)
     
     % AK add full DATA and slice average (not much changes on scan
     % timescale)
-    [syncVirmenData, outputDATA, outputSlice1, outputSlice2, outputSlice3, outputSlice4, outputMazeName ] =...
+    [syncVirmenData, outputDATA, outputSlice1, outputSlice2, outputSlice3, outputSlice4,...
+        outputSlice5, outputSlice6,outputMazeName ] =...
         saveVirmenData(combinedVirmenFiles, mazeName,virmenFrameNumber);
     
     
