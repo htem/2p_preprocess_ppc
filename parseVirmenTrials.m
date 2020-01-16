@@ -69,6 +69,7 @@ for i = 1:numTrials
         trial_virmen(:,i,1:12) = zeros(numVirVars,i,12);
         trial_virmen(:,i,13)= syncVirmenData(:,trialStarts(i));
     else
+        trial_virmen(:,i,1:13) = syncVirmenData(:,trialStarts(i)-12:trialStarts(i));
         trial_virmen(:,i,14:26) = syncVirmenData(:,runOnset(i):runOnset(i)+12);
         trial_virmen(:,i,27:51) = syncVirmenData(:,delayStart(i)-12:delayStart(i)+12);
         trial_virmen(:,i,52:76) = syncVirmenData(:,trialEnds(i)-12:trialEnds(i)+12);      
