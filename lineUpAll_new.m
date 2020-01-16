@@ -6,7 +6,7 @@ data_path = '/home/atk13/ppc/2P_data/';
 mouse = sessionList_all{1,1}(1:5);
 frameClockThresh = 4.5; % ATK in Volts
 
-for session = 36%:size(sessionList_all,1) TEST LD187_141213 for now
+for session = 1:size(sessionList_all,1) 
     VirmenData1 = [];
     VirmenData2 = [];
     VirmenData3 = [];
