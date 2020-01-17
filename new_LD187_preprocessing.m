@@ -18,7 +18,6 @@ end
 %%%%%%%%%
 session = sessionList_all{36,1};
 disp(session)
-trialAlignedData = struct;
 %%%%%%%%%
 %% line up 
 lineUpSession(session) % for now run 141213
@@ -61,129 +60,41 @@ ylabel('spike rate');
 %% Parse virmen trials
 
 trialAlignedData = parseVirmenTrials(vData.VirmenCombined, spks);
-trialTypes = {'newL_trials','bR_trials','wL_trials','newR_trials'};
-for i = 1:length(trialTypes)
-    % Ca activity and virmen activity for each trial type individually
-    trialAlignedData.(trialTypes{i}) = struct;
-    trialAlignedData.(trialTypes{i}).Ca = trialAlignedData.CaData(:,trialAlignedData.trialType==i,:);
-    trialAlignedData.(trialTypes{i}).virmen = trialAlignedData.virmenData(:,trialAlignedData.trialType==i,:);
-
-    % Calculate trial average activities
-    trialAlignedData.(trialTypes{i}).Ca_trialMean = squeeze(mean(trialAlignedData.(trialTypes{i}).Ca,2));
+output_dir = fullfile(masterPath, 'code_workspace',mouse,'syncedData');   
+if ~exist(output_dir,'dir')
+    mkdir(output_dir)
 end
-
-%% Sanity check with trialwise behavioral data
-beh_idx = 4;
-
-figure; hold on;
-pltC = {'m-','b-','r-','c-'};
-for j = 1:length(trialTypes)
-    if size(trialAlignedData.(trialTypes{j}).virmen,2) > 0
-        for i = 1:size(trialAlignedData.(trialTypes{j}).virmen,2)
-            plot(squeeze(trialAlignedData.(trialTypes{j}).virmen(beh_idx,i,:)),pltC{j})
-        end
-    end
-end
-%% Calculate R/L selectivity indices
-thisTrial = 13:76;
-% exclude ITI-before (which is unrelated to this trial), 13:76
-r = mean(trialAlignedData.bR_trials.Ca_trialMean(:,thisTrial),2);
-l = mean(trialAlignedData.wL_trials.Ca_trialMean(:,thisTrial),2);
-trialAlignedData.RL_selectIdx = (r - l)./(r + l);
-figure; histogram(trialAlignedData.RL_selectIdx)
-% definition fo cellSelectIdx from Harvey 2012 
-
-% sanity-check activity for very selective cells
-figure; hold on; 
-subplot(1,2,1);
-plot(thisTrial,trialAlignedData.bR_trials.Ca_trialMean(trialAlignedData.RL_selectIdx>0.45,13:76)')
-ylim([0,25]);
-subplot(1,2,2); 
-plot(thisTrial,trialAlignedData.wL_trials.Ca_trialMean(trialAlignedData.RL_selectIdx>0.45,13:76)')
-ylim([0,25]);
+save(fullfile(output_dir,session),'trialAlignedData');
 
 
+%% Plot example activity as test
 
-%% Calculate pairwise correlation matrices
+s2p_cid = 1351;
+matlab_cid = s2p_cid+1;
 
-trialAlignedData.corr_all = corrcoef(spks');
-for i = 1:length(trialTypes)
-    if size(trialAlignedData.(trialTypes{i}).virmen,2) > 0
-        trialAlignedData.(trialTypes{i}).corrcoef = corrcoef(trialAlignedData.(trialTypes{i}).Ca_trialMean');
-        trialAlignedData.(trialTypes{i}).corrcoef = corrcoef(trialAlignedData.(trialTypes{i}).Ca_trialMean');
-    end
-end
-% sanity check by comparing
-figure;
-plot(trialAlignedData.corr_all(:),trialAlignedData.bR_trials.corrcoef(:),'.');
-xlabel('total correlation'); ylabel('bR trial correlation');
+% Define colors
+cueEarlyColor = [0 161 75]/255; 
+cueLateColor = [255 222 23]/255;
+delayEarlyColor = [237 28 36]/255;
+delayTurnColor = [127 63 152]/255;
+turnITIcolor = [33 64 154]/255;
 
 figure;
-plot(trialAlignedData.bR_trials.corrcoef(:),trialAlignedData.wL_trials.corrcoef(:),'.');
-xlabel('bR trials correlations'); ylabel('wL trials correlation');
 
-%% Calculate timing metrics
+subplot(1,2,1); hold on;
+plot(cueBlockEarly,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,cueBlockEarly),'color',cueEarlyColor);
+plot(cueBlockLate,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,cueBlockLate),'color',cueLateColor);
+plot(delayBlockEarly,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,delayBlockEarly),'color',delayEarlyColor);
+plot(delayTurnBlock,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,delayTurnBlock),'color',delayTurnColor);
+plot(turnITIblock,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,turnITIblock),'color',turnITIcolor);
+title('right');
 
-
-for i = 1:length(trialTypes)
-    if size(trialAlignedData.(trialTypes{i}).virmen,2) > 0
-        Ca = trialAlignedData.(trialTypes{i}).Ca_trialMean;
-        % time center-of-mass 
-        trialAlignedData.(trialTypes{i}).tCOM = (Ca(:,thisTrial)*thisTrial')./sum(Ca(:,thisTrial),2);
-        % time of max
-        tMax = nan(numCells);
-        for cid = 1:numCells
-            tMax(cid) = find(Ca(cid,:) == max(Ca(cid,thisTrial)),1,'last');
-        end
-        trialAlignedData.(trialTypes{i}).tMax = tMax;
-    end
-end
-% sanity check by plotting high COM 
-figure;
-plot(trialAlignedData.bR_trials.Ca_trialMean(trialAlignedData.bR_trials.tCOM>48,:)');
-
-% sanity check by plotting high tmax
-figure;
-plot(trialAlignedData.bR_trials.Ca_trialMean(trialAlignedData.bR_trials.tMax>70,:)');
-
-
-
-
-%% Calculate activity timing indices
-% ATK sanity check doesn't seem right, hold off for now
-%{
-% Define time blocks
-cueBlockEarly = 14:26; % 14 is running onset + 12 frames after
-cueBlockLate = 27:38; % 12 frames before cue offset (frame 39)
-delayBlockEarly = 39:51; % 39 is cue offset + 12 frames after
-delayTurnBlock = 52:64; % 12 frames before end of trial (turn a certain amt)
-turnITIblock = 65:76; % Trial end (reward given) an 12 frames after (dark, ITI)
-
-for i = 1:length(trialTypes)
-    if size(trialAlignedData.(trialTypes{i}).virmen,2) > 0
-        disp(['type ' trialTypes{i}])
-        meanCueEarly = squeeze(mean(trialAlignedData.(trialTypes{i}).Ca_trialMean(:,cueBlockEarly),2));
-        meanCueLate = squeeze(mean(trialAlignedData.(trialTypes{i}).Ca_trialMean(:,cueBlockLate),2)); 
-        meanDelayEarly = squeeze(mean(trialAlignedData.(trialTypes{i}).Ca_trialMean(:,delayBlockEarly),2));
-        meanDelayTurn = squeeze(mean(trialAlignedData.(trialTypes{i}).Ca_trialMean(:,delayTurnBlock),2));
-        meanTurnITI = squeeze(mean(trialAlignedData.(trialTypes{i}).Ca_trialMean(:,turnITIblock),2));
-
-        normSpRate = meanCueEarly + meanCueLate + meanDelayEarly + meanDelayTurn + meanTurnITI;
-        
-        trialAlignedData.(trialTypes{i}).t_selectIdx = [meanCueEarly meanCueLate meanDelayEarly meanDelayTurn meanTurnITI]./normSpRate;
-    end
-end
-
-% sanity check by plotting very selective traces
-figure;
-hold on;
-colors = jet(5);
-for tIdx = 5:5
-    disp(sum(trialAlignedData.wL_trials.t_selectIdx(:,tIdx)>.5))
-    %plot(trialAlignedData.wL_trials.Ca(trialAlignedData.wL_trials.t_selectIdx(:,tIdx)>.6,thisTrial)','color',colors(tIdx,:));
-    %plot(thisTrial,trialAlignedData.wL_trials.Ca(trialAlignedData.wL_trials.t_selectIdx(:,tIdx)>.5,thisTrial));
-    imagesc(trialAlignedData.wL_trials.Ca(trialAlignedData.wL_trials.t_selectIdx(:,tIdx)>.5,thisTrial));
-end
-%}
+subplot(1,2,2); hold on;
+plot(cueBlockEarly,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,cueBlockEarly),'color',cueEarlyColor);
+plot(cueBlockLate,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,cueBlockLate),'color',cueLateColor);
+plot(delayBlockEarly,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,delayBlockEarly),'color',delayEarlyColor);
+plot(delayTurnBlock,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,delayTurnBlock),'color',delayTurnColor);
+plot(turnITIblock,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,turnITIblock),'color',turnITIcolor);
+title('left');
 
 
