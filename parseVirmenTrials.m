@@ -33,7 +33,7 @@ inTrial = 1-inITI;
 numRewards = length(rewards);
 trialEnds = ITIstarts;
 
-numTrials = length(trialStarts);
+numTrials = length(trialEnds);
 for i = 1:numTrials
     if i < numTrials
         success(i) = max(isReward(trialStarts(i):trialStarts(i+1)));
@@ -45,8 +45,17 @@ for i = 1:numTrials
         runOnset(i) = find(y_vel(trialStarts(i):end) > 1,1) + trialStarts(i) - 1;
     end
     cueType(i) = cuePos(trialEnds(1,i));
-    % filter for erroneous trial starts where mouse is not at beginning of maze
-    if y_pos(trialStarts(i)) > 50
+    % filter for erroneous trials
+    if delayStart(i) < 12
+        cueType(i) = nan;
+        disp(['Removing erroneous trial ' num2str(i)])
+    elseif y_pos(trialStarts(i)) > 50
+        cueType(i) = nan;
+        disp(['Removing erroneous trial ' num2str(i)])
+    elseif max(abs(x_pos(trialStarts(i):trialStarts(i)+12))) > 0.2 
+        cueType(i) = nan;
+        disp(['Removing erroneous trial ' num2str(i)])
+    elseif max(abs(x_pos(delayStart(i)-12:delayStart(i)+12))) > 0.2 
         cueType(i) = nan;
         disp(['Removing erroneous trial ' num2str(i)])
     end
@@ -65,26 +74,33 @@ numVirVars = size(syncVirmenData,1);
 trial_virmen = nan(numVirVars,numTrials,76);
 for i = 1:numTrials
     trial_type(1,i) = cueType(i);
-    if i == 1
-        trial_virmen(:,i,1:12) = zeros(numVirVars,i,12);
-        trial_virmen(:,i,13)= syncVirmenData(:,trialStarts(i));
-    else
+    trial_virmen(:,i,:) = nan(numVirVars,76);
+    if trialStarts(i)>12
         trial_virmen(:,i,1:13) = syncVirmenData(:,trialStarts(i)-12:trialStarts(i));
+    end
+    if runOnset(i)>12
         trial_virmen(:,i,14:26) = syncVirmenData(:,runOnset(i):runOnset(i)+12);
+    end
+    if delayStart(i)>12 
         trial_virmen(:,i,27:51) = syncVirmenData(:,delayStart(i)-12:delayStart(i)+12);
-        trial_virmen(:,i,52:76) = syncVirmenData(:,trialEnds(i)-12:trialEnds(i)+12);      
+    end
+    if trialEnds(i)>12
+        trial_virmen(:,i,52:76) = syncVirmenData(:,trialEnds(i)-12:trialEnds(i)+12);
     end
     for roiIdx = 1:size(dF,1)
-        if i == 1
-            trial_dF(roiIdx,i,1:12) = zeros(1,1,12);
-            trial_dF(roiIdx,i,13)= dF(roiIdx,trialStarts(i));
-        else
+        trial_dF(roiIdx,i,:) = nan(76,1);
+        if trialStarts(i)>12
             trial_dF(roiIdx,i,1:13) = dF(roiIdx,trialStarts(i)-12:trialStarts(i));
-            trial_dF(roiIdx,i,1:13) = dF(roiIdx,trialStarts(i)-12:trialStarts(i));
-        end   
-        trial_dF(roiIdx,i,14:26) = dF(roiIdx,runOnset(i):runOnset(i)+12);
-        trial_dF(roiIdx,i,27:51) = dF(roiIdx,delayStart(i)-12:delayStart(i)+12);
-        trial_dF(roiIdx,i,52:76) = dF(roiIdx,trialEnds(i)-12:trialEnds(i)+12);
+        end
+        if runOnset(i)>12
+            trial_dF(roiIdx,i,14:26) = dF(roiIdx,runOnset(i):runOnset(i)+12);
+        end
+        if delayStart(i)>12
+            trial_dF(roiIdx,i,27:51) = dF(roiIdx,delayStart(i)-12:delayStart(i)+12);
+        end
+        if trialEnds(i)>12
+            trial_dF(roiIdx,i,52:76) = dF(roiIdx,trialEnds(i)-12:trialEnds(i)+12);
+        end
     end
 end
 
@@ -111,7 +127,7 @@ for i = 1:length(trialTypes)
 end
 
 %% Sanity check with trialwise behavioral data
-beh_idx = 4;
+beh_idx = 2;
 
 figure; hold on;
 pltC = {'m-','b-','r-','c-'};
@@ -125,8 +141,8 @@ end
 %% Calculate R/L selectivity indices
 thisTrial = 13:76;
 % exclude ITI-before (which is unrelated to this trial), 13:76
-r = mean(trialAlignedData.bR_trials.Ca_trialMean(:,thisTrial),2);
-l = mean(trialAlignedData.wL_trials.Ca_trialMean(:,thisTrial),2);
+r = nanmean(trialAlignedData.bR_trials.Ca_trialMean(:,thisTrial),2);
+l = nanmean(trialAlignedData.wL_trials.Ca_trialMean(:,thisTrial),2);
 trialAlignedData.RL_selectIdx = (r - l)./(r + l);
 figure; histogram(trialAlignedData.RL_selectIdx)
 % definition fo cellSelectIdx from Harvey 2012 
@@ -134,10 +150,10 @@ figure; histogram(trialAlignedData.RL_selectIdx)
 % sanity-check activity for very selective cells
 figure; hold on; 
 subplot(1,2,1);
-plot(thisTrial,trialAlignedData.bR_trials.Ca_trialMean(trialAlignedData.RL_selectIdx>0.45,13:76)')
+plot(thisTrial,trialAlignedData.bR_trials.Ca_trialMean(trialAlignedData.RL_selectIdx>0.4,thisTrial)')
 ylim([0,25]);
 subplot(1,2,2); 
-plot(thisTrial,trialAlignedData.wL_trials.Ca_trialMean(trialAlignedData.RL_selectIdx>0.45,13:76)')
+plot(thisTrial,trialAlignedData.wL_trials.Ca_trialMean(trialAlignedData.RL_selectIdx>0.4,thisTrial)')
 ylim([0,25]);
 
 
@@ -147,8 +163,8 @@ ylim([0,25]);
 trialAlignedData.corr_all = corrcoef(syncCaData');
 for i = 1:length(trialTypes)
     if size(trialAlignedData.(trialTypes{i}).virmen,2) > 0
-        trialAlignedData.(trialTypes{i}).corrcoef = corrcoef(trialAlignedData.(trialTypes{i}).Ca_trialMean');
-        trialAlignedData.(trialTypes{i}).corrcoef = corrcoef(trialAlignedData.(trialTypes{i}).Ca_trialMean');
+        disp(trialTypes{i})
+        trialAlignedData.(trialTypes{i}).corrcoef = corrcoef(trialAlignedData.(trialTypes{i}).Ca_trialMean','rows','complete');
     end
 end
 % sanity check by comparing
