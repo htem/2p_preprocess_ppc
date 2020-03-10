@@ -1,6 +1,7 @@
-cd('Z:\HarveyLab\Aaron\scanimage\AK001')
+%cd('Z:\HarveyLab\Aaron\scanimage\AK001')
+cd('/home/atk13/NeuroShare/Lee_Lab/Aaron/data/scanimage/LD187')
 mouseDir = pwd;
-sessionList = dir('AK*');
+sessionList = dir('LD187*');
 % 
 for session = 2%:size(sessionList,1)
 cd(fullfile(mouseDir,sessionList(session).name))

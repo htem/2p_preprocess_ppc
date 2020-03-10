@@ -29,7 +29,7 @@ end
 cd(sessionPath);
 acq = Acquisition2P([],@ak_init); 
 
-%% Produce motion corrected movies
+%% Prohttps://github.com/epnev/constrained-foopsiduce motion corrected movies
 
 acq.motionRefChannel = 2; % red channel 
 acq.motionCorrect; % Produce motion corrected 
@@ -173,7 +173,8 @@ mother_dir = pwd;
 sessionList = dir('AK*');
 
 cd('Z:\Laura\code_workspace\AK001\sessions')
-mother_dir = pwd;
+mother_dir = pwd;et dF, etc
+
 sessionList = dir('AK*');
 for session = 12%1:size(sessionList,1)%3%15%37%%%%LD186_10%%%LD183_36
     sessionDir = fullfile(mother_dir,sessionList(session).name);
