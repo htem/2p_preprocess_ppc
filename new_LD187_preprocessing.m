@@ -7,7 +7,7 @@
 masterPath = '/home/atk13/ppc/2P_data/';
 mouse = 'LD187';
 
-sessionList = dir('/home/atk13/NeuroShare/Lee_Lab/Aaron/data/scanimage/LD187/LD187*');
+sessionList = dir('/n/groups/htem/temcagt/datasets/ppc/2P_data/scanimage/LD187/LD187*');
 sessionList_all = cell(size(sessionList,1),1);
 for s = 1:size(sessionList,1)
     sessionList_all{s,1} = sessionList(s,1).name;
@@ -16,7 +16,7 @@ end
 %% Select Session and lineup
 
 %%%%%%%%%
-session = sessionList_all{39,1};
+session = sessionList_all{37,1};
 disp(session)
 %%%%%%%%%
 
@@ -42,15 +42,39 @@ neucoeff = 0.7;
 s2p.Fsub = s2p.F - neucoeff * s2p.Fneu;
 
 % for now use suite2p's deconvolution
-spks = s2p.spks;
+% spks = s2p.spks;
 % dF = zscore(s2p.Fsub,0,2);
-%[c, s, options] = deconvolveCa(s2p.Fsub(1,:));
-%[c,b,c1,g,sn,sp] = constrained_foopsi(s2p.Fsub(1:2,:));
+%
 
+%% Deconvolution with constrained_foopsi
+%[c, s, options] = deconvolveCa(s2p.Fsub(1,:),'method','constrained');
+tic
+[c,b,c1,g,sn,sp] = run_constrained_foopsi(double(s2p.Fsub));
+toc
 
+%% compare suite2p and constrained_foopsi deconv
+cell_idx = find(s2p.iscell(:,1)==1);
+
+figure;
+num_ex = 8;
+start = 100;
+num_pts = 400;
+tsec = (1:num_pts)/5.6;
+for i = start:start+num_ex-1
+    disp(cell_idx(i))
+    subplot(num_ex,3,3*(i-start)+1);
+    plot(tsec,s2p.Fsub(cell_idx(i),1:num_pts));
+    title('raw');
+    subplot(num_ex,3,3*(i-start) + 2);
+    plot(tsec,spks(cell_idx(i),1:num_pts));
+    title('suite2p');
+    subplot(num_ex,3,3*(i-start)+3);    
+    plot(tsec,sp(cell_idx(i),1:num_pts));
+    title('const foopsi');
+end
 %% Parse virmen trials
 
-trialAlignedData = parseVirmenTrials(vData.VirmenCombined, spks);
+trialAlignedData = parseVirmenTrials(vData.VirmenCombined, sp);
 output_dir = fullfile(masterPath, 'code_workspace',mouse,'syncedData');   
 if ~exist(output_dir,'dir')
     mkdir(output_dir)
@@ -63,15 +87,15 @@ frames = 1:length(spks);
 dt = 1/5.3; % 5.3 Hz sampling rate
 time = frames * dt;
 for i = 1:30%size(mySignal,1)
-    plot(time,spks(i,:)+100*i);
+    plot(time,sp(i,:)+100*i);
+    
 end
 xlabel('time (sec)');
 ylabel('spike rate');
 
-
 %% Plot example activity as test
 
-s2p_cid = 1351;
+s2p_cid =246;
 matlab_cid = s2p_cid+1;
 
 % Define colors
@@ -80,10 +104,19 @@ cueLateColor = [255 222 23]/255;
 delayEarlyColor = [237 28 36]/255;
 delayTurnColor = [127 63 152]/255;
 turnITIcolor = [33 64 154]/255;
+% Define blocks
+cueBlockEarly = 14:26; % 14 is running onset + 12 frames after
+cueBlockLate = 27:38; % 12 frames before cue offset (frame 39)
+delayBlockEarly = 39:51; % 39 is cue offset + 12 frames after
+delayTurnBlock = 52:64; % 12 frames before end of trial (turn a certain amt)
+turnITIblock = 65:76; % Trial end (reward given) an 12 frames after (dark, ITI)
 
 figure;
+tiledlayout(1,2)
 
-subplot(1,2,1); hold on;
+ax1 = nexttile;
+%subplot(1,2,1); 
+hold on;
 plot(cueBlockEarly,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,cueBlockEarly),'color',cueEarlyColor);
 plot(cueBlockLate,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,cueBlockLate),'color',cueLateColor);
 plot(delayBlockEarly,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,delayBlockEarly),'color',delayEarlyColor);
@@ -91,12 +124,12 @@ plot(delayTurnBlock,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,delayTurn
 plot(turnITIblock,trialAlignedData.bR_trials.Ca_trialMean(matlab_cid,turnITIblock),'color',turnITIcolor);
 title('right');
 
-subplot(1,2,2); hold on;
-plot(cueBlockEarly,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,cueBlockEarly),'color',cueEarlyColor);
+ax2 = nexttile;
+%subplot(1,2,2); 
+hold on;
 plot(cueBlockLate,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,cueBlockLate),'color',cueLateColor);
 plot(delayBlockEarly,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,delayBlockEarly),'color',delayEarlyColor);
 plot(delayTurnBlock,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,delayTurnBlock),'color',delayTurnColor);
 plot(turnITIblock,trialAlignedData.wL_trials.Ca_trialMean(matlab_cid,turnITIblock),'color',turnITIcolor);
 title('left');
-
-
+linkaxes([ax1 ax2],'xy')
