@@ -16,7 +16,7 @@ end
 %% Select Session and lineup
 
 %%%%%%%%%
-session = sessionList_all{37,1};
+session = sessionList_all{31,1};
 disp(session)
 %%%%%%%%%
 
@@ -46,12 +46,17 @@ s2p.Fsub = s2p.F - neucoeff * s2p.Fneu;
 % dF = zscore(s2p.Fsub,0,2);
 %
 
-%% Deconvolution with constrained_foopsi
+% Deconvolution with constrained_foopsi
 %[c, s, options] = deconvolveCa(s2p.Fsub(1,:),'method','constrained');
 tic
 [c,b,c1,g,sn,sp] = run_constrained_foopsi(double(s2p.Fsub));
 toc
 
+output_dir_deconv = fullfile(masterPath, 'code_workspace',mouse,'deconvData');   
+if ~exist(output_dir_deconv,'dir')
+    mkdir(output_dir_deconv)
+end
+save(fullfile(output_dir_deconv,session),'c','b','c1','g','sn','sp');
 %% compare suite2p and constrained_foopsi deconv
 cell_idx = find(s2p.iscell(:,1)==1);
 
@@ -61,7 +66,7 @@ start = 100;
 num_pts = 400;
 tsec = (1:num_pts)/5.6;
 for i = start:start+num_ex-1
-    disp(cell_idx(i))
+    %disp(cell_idx(i))
     subplot(num_ex,3,3*(i-start)+1);
     plot(tsec,s2p.Fsub(cell_idx(i),1:num_pts));
     title('raw');
@@ -73,7 +78,7 @@ for i = start:start+num_ex-1
     title('const foopsi');
 end
 %% Parse virmen trials
-
+% Hack for 141210 %% trialAlignedData = parseVirmenTrials(vData.VirmenCombined(:,6001:16000), sp);
 trialAlignedData = parseVirmenTrials(vData.VirmenCombined, sp);
 output_dir = fullfile(masterPath, 'code_workspace',mouse,'syncedData');   
 if ~exist(output_dir,'dir')
@@ -83,7 +88,7 @@ save(fullfile(output_dir,session),'trialAlignedData');
 
 %% Plot example traces
 figure; hold on;
-frames = 1:length(spks);
+frames = 1:length(sp);
 dt = 1/5.3; % 5.3 Hz sampling rate
 time = frames * dt;
 for i = 1:30%size(mySignal,1)
@@ -95,7 +100,7 @@ ylabel('spike rate');
 
 %% Plot example activity as test
 
-s2p_cid =246;
+s2p_cid = 8;
 matlab_cid = s2p_cid+1;
 
 % Define colors
