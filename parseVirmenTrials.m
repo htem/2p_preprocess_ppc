@@ -104,7 +104,7 @@ for i = 1:numTrials
     end
 end
 
-trialAvg_dF = squeeze(mean(trial_dF,2));
+trialAvg_dF = squeeze(nanmean(trial_dF,2));
 
 
 % Export data struct
@@ -128,14 +128,14 @@ for i = 1:length(trialTypes)
     numTrials = size(virmen,2);
     trialAlignedData.(trialTypes{i}).numTrials = numTrials;
     % Calculate trial average activities
-    trialMean = squeeze(mean(trialAlignedData.(trialTypes{i}).Ca,2));
+    trialMean = squeeze(nanmean(trialAlignedData.(trialTypes{i}).Ca,2));
     trialAlignedData.(trialTypes{i}).Ca_trialMean = trialMean;
     trialAlignedData.(trialTypes{i}).Ca_trialMean_concat = repmat(trialMean,1,size(Ca,2));
     trialResidual = trialAlignedData.(trialTypes{i}).Ca - permute(repmat(trialMean,[1,1,numTrials]),[1,3,2]);
     trialAlignedData.(trialTypes{i}).Ca_residual = trialResidual;
     trialAlignedData.(trialTypes{i}).Ca_residual_concat = reshape(permute(trialResidual,[1,3,2]), [concatSz]);
     % Calculated trial SNR
-    trial_snr = std(trialAlignedData.(trialTypes{i}).Ca_trialMean_concat,0,2).^2./std(trialAlignedData.(trialTypes{i}).Ca_residual_concat,0,2).^2;
+    trial_snr = nanstd(trialAlignedData.(trialTypes{i}).Ca_trialMean_concat,0,2).^2./nanstd(trialAlignedData.(trialTypes{i}).Ca_residual_concat,0,2).^2;
     trialAlignedData.(trialTypes{i}).trial_snr = trial_snr; 
 end
 
@@ -222,7 +222,7 @@ for i = 1:length(trialTypes)
         % time center-of-mass 
         trialAlignedData.(trialTypes{i}).tCOM = (Ca(:,thisTrial)*thisTrial')./sum(Ca(:,thisTrial),2);
         % time of max
-        tMax = nan(trialAlignedData.numCells);
+        tMax = nan(trialAlignedData.numCells,1);
         for cid = 1:trialAlignedData.numCells
             tMax(cid) = find(Ca(cid,:) == max(Ca(cid,thisTrial)),1,'last');
         end

@@ -16,7 +16,7 @@ end
 %% Select Session and lineup
 
 %%%%%%%%%
-session = sessionList_all{38,1};
+session = sessionList_all{36};
 disp(session)
 %%%%%%%%%
 
@@ -25,6 +25,7 @@ lineUpSession(session)
 % Exports VirminCombined to ppc/2P_data/code_workspace/LD187/virmen/FILE.mat
 
 %% Load suite2p and aligned virmen data
+disp(['Loading suite2p data for ' session]);
 
 % Load suite2p output
 suite2pPath = fullfile(masterPath,'scanimage',mouse,session,'suite2p');
@@ -40,7 +41,8 @@ disp(['Virmen Data has ' num2str(size(vData.VirmenCombined,2)) ' frames']);
 neucoeff = 0.7;
 s2p.Fsub = s2p.F - neucoeff * s2p.Fneu;
 
-%%
+%% Deconvolution
+disp(session)
 tic
 [c,b,c1,g,sn,sp] = run_constrained_foopsi(double(s2p.Fsub));
 toc
@@ -52,11 +54,13 @@ end
 save(fullfile(output_dir_deconv,session),'c','b','c1','g','sn','sp');
 
 %% Load deconv data
-
+disp(['Loading deconv data for ' session]);
+%disp(session)
 output_dir_deconv = fullfile(masterPath, 'code_workspace',mouse,'deconvData');   
 load(fullfile(output_dir_deconv,session),'c','b','c1','g','sn','sp');
 
 %% Calculate SNR metrics
+disp(['Calculating SNR for ' session]);
 snr = nan([],length(sn));
 for i = 1:length(sn)
     snr(i) = std(c(i,:))^2/sn(i)^2;
@@ -65,7 +69,7 @@ end
 %% Plot SNR 
 figure; plot(snr); xlabel('mask ID'); ylabel('SNR');
 figure; histogram(snr, 100); xlabel('SNR'); ylabel('# of masks');  xlim([0,150]);
-%%
+%% Plot example data
 cid =674;
 dF = s2p.Fsub;
 sorted_dF = sort(dF(cid,:));
@@ -79,6 +83,7 @@ plot(dF_zeroed);
 title(['SNR: '  num2str(snr(cid))])
 
 %% Parse virmen trials
+disp(['Saving trial aligned data for ' session]);
 % Hack for 141210 %% trialAlignedData = parseVirmenTrials(vData.VirmenCombined(:,6001:16000), sp);
 trialAlignedData = parseVirmenTrials(vData.VirmenCombined, sp);
 output_dir = fullfile(masterPath, 'code_workspace',mouse,'syncedData');   
