@@ -159,8 +159,10 @@ for j = 1:length(trialTypes)
 end
 %% Calculate R/L selectivity indices
 %thisTrial = 13:76;
-thisTrial = 1:63;
 % exclude ITI-before (which is unrelated to this trial), 13:76
+% these now excluded in calculating Ca_trialMean
+thisTrial = 1:63;
+
 r = nanmean(trialAlignedData.bR_trials.Ca_trialMean(:,thisTrial),2);
 l = nanmean(trialAlignedData.wL_trials.Ca_trialMean(:,thisTrial),2);
 trialAlignedData.RL_selectIdx = (r - l)./(r + l);

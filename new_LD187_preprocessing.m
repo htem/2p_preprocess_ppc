@@ -4,7 +4,7 @@
 % Needs matlab signal processing toolbox
 
 %% make sessionList_all variable for each mouse and save 
-masterPath = '/home/atk13/ppc/2P_data/';
+masterPath = '/n/groups/htem/temcagt/datasets/ppc/2P_data/';
 mouse = 'LD187';
 
 sessionList = dir('/n/groups/htem/temcagt/datasets/ppc/2P_data/scanimage/LD187/LD187*');
@@ -13,10 +13,14 @@ for s = 1:size(sessionList,1)
     sessionList_all{s,1} = sessionList(s,1).name;
 end
 
+%% ATK 201030 for loading from HD
+masterPath = "/Volumes/Aaron's 5TB HD/ppc/2P_data/";
+mouse = 'LD187';
 %% Select Session and lineup
 
 %%%%%%%%%
-session = sessionList_all{36};
+%session = sessionList_all{36};
+session = 'LD187_141216';
 disp(session)
 %%%%%%%%%
 
@@ -24,7 +28,7 @@ disp(session)
 lineUpSession(session) 
 % Exports VirminCombined to ppc/2P_data/code_workspace/LD187/virmen/FILE.mat
 
-%% Load suite2p and aligned virmen data
+%% Load suite2p Data
 disp(['Loading suite2p data for ' session]);
 
 % Load suite2p output
@@ -32,14 +36,15 @@ suite2pPath = fullfile(masterPath,'scanimage',mouse,session,'suite2p');
 suite2pOutput = fullfile(suite2pPath,'combined/Fall.mat');
 s2p = load(suite2pOutput);
 numCells = size(s2p.F,1);
+neucoeff = 0.7;
+s2p.Fsub = s2p.F - neucoeff * s2p.Fneu;
 disp(['Suite2p video data has ' num2str(size(s2p.F,2)) ' frames']);
 
-% Load aligned virmen data
+
+%% Load aligned virmen data
 linedUpPath = fullfile(masterPath,'code_workspace',mouse,'virmen',[session '.mat']);
 vData = load(linedUpPath);
 disp(['Virmen Data has ' num2str(size(vData.VirmenCombined,2)) ' frames']);
-neucoeff = 0.7;
-s2p.Fsub = s2p.F - neucoeff * s2p.Fneu;
 
 %% Deconvolution
 disp(session)
@@ -54,6 +59,7 @@ end
 save(fullfile(output_dir_deconv,session),'c','b','c1','g','sn','sp');
 
 %% Load deconv data
+
 disp(['Loading deconv data for ' session]);
 %disp(session)
 output_dir_deconv = fullfile(masterPath, 'code_workspace',mouse,'deconvData');   
@@ -166,3 +172,5 @@ for i = start:start+num_ex-1
     plot(tsec,sp(cell_idx(i),1:num_pts));
     title('const foopsi');
 end
+
+
